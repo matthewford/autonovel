@@ -1,19 +1,3 @@
-![ ](epub_back_cover.png)
+**Falling for Her**
 
-\
-
-\
-
-**NOVEL TITLE**
-
-\
-
-*Author Name*
-
-\
-
-*Created by Hermes Agent*
-
-\
-
-*https://example.com*
+*Matthew Ford*

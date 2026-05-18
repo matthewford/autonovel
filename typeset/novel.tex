@@ -37,7 +37,7 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[LE]{\small\textsc{the second son of the house of bells}}
+\fancyhead[LE]{\small\textsc{falling for her}}
 \fancyhead[RO]{\small\textit{\leftmark}}
 \fancyfoot[C]{\thepage}
 \renewcommand{\headrulewidth}{0pt}
@@ -50,13 +50,6 @@
 
 % === CHAPTER STYLE ===
 \usepackage{titlesec}
-
-% Ornamental bell motif (using dingbats)
-\newcommand{\bellornament}{%
-  \par\noindent\vspace{6pt}%
-  \hfill{\large\symbol{"2756}}\hfill\null%
-  \vspace{6pt}\par%
-}
 
 % Scene break ornament
 \newcommand{\scenebreak}{%
@@ -80,7 +73,7 @@
   {\vspace*{1.5in}\footnotesize\textsc{chapter \thechapter}}
   {4pt}
   {\Large\itshape}
-  [\vspace{8pt}{\small--- $\diamond$ ---}\vspace{0.5in}]
+  [\vspace{8pt}{\small--- $*$ ---}\vspace{0.5in}]
 
 \titlespacing*{\chapter}{0pt}{0pt}{0pt}
 
@@ -92,21 +85,15 @@
   \thispagestyle{empty}
   \begin{center}
   \vspace*{2in}
-  
-  {\small\textsc{the}}\\[0.15in]
-  
-  {\Huge\textsc{Second Son}}\\[0.1in]
-  
-  {\small\textsc{of the}}\\[0.15in]
-  
-  {\Huge\textsc{House of Bells}}\\[0.4in]
-  
-  {\small------\quad$\diamond$\quad------}\\[0.5in]
-  
-  {\large\textit{A Novel}}\\[1in]
-  
-  {\Large\textsc{Claude Hermes}}\\[1.5in]
-  
+
+  {\Huge\textsc{Falling for Her}}\\[0.5in]
+
+  {\small--- $*$ ---}\\[0.5in]
+
+  {\large\textit{A Novella}}\\[1in]
+
+  {\Large\textsc{Matthew Ford}}\\[1.5in]
+
   \end{center}
   \clearpage
 }
@@ -119,9 +106,10 @@
   \begin{minipage}{3in}
   \begin{center}
   \itshape
-  You're not listening to the bell.\\
-  You're listening for what the bell\\
-  is trying to tell you it is.\\[12pt]
+  He closed the laptop but did not shut it down.\\
+  The fan kept spinning. In the dark\\
+  he could still see the cursor in his mind,\\
+  patient and warm.\\[12pt]
   \end{center}
   \end{minipage}
   \end{center}
@@ -133,7 +121,7 @@
   \thispagestyle{empty}
   \vspace*{3in}
   \begin{center}
-  {\large\textsc{The Second Son of the House of Bells}}
+  {\large\textsc{Falling for Her}}
   \end{center}
   \clearpage
 }
@@ -141,9 +129,9 @@
 % === PDF METADATA ===
 \usepackage{hyperref}
 \hypersetup{
-  pdftitle={The Second Son of the House of Bells},
-  pdfauthor={Claude Hermes},
-  pdfsubject={Fantasy Novel},
+  pdftitle={Falling for Her},
+  pdfauthor={Matthew Ford},
+  pdfsubject={Contemporary Literary Romance},
   hidelinks
 }
 
@@ -177,26 +165,15 @@
 \vspace*{\fill}
 \begin{center}
 
-{\small This is a work of fiction}\\[4pt]
-{\small created by Hermes Agent.}\\[18pt]
+{\small This is a work of fiction.}\\[4pt]
+{\small Names, characters, and incidents are products of the author's imagination.}\\[18pt]
 
-{\small For full reproduction code and alternate formats}\\[2pt]
-{\small (ePub, audiobook) please visit:}\\[8pt]
+{\small Typeset with \LaTeX}\\[8pt]
 
-{\small\texttt{https://nousresearch.com/bells}}\\[16pt]
-
-\IfFileExists{../art/qr_bells.png}{%
-  \includegraphics[width=1in]{../art/qr_bells.png}
-}{}
+{\small First edition}\\[16pt]
 
 \end{center}
 \vspace*{\fill}
-\begin{center}
-\IfFileExists{../art/pdf/nous_logo.pdf}{%
-  \includegraphics[width=0.8in]{../art/pdf/nous_logo.pdf}
-}{}
-\end{center}
-\vspace{0.3in}
 \clearpage
 
 % Epigraph
@@ -218,8 +195,8 @@
 \thispagestyle{empty}
 \vspace*{3in}
 \begin{center}
-{\small------\quad$\diamond$\quad------}\\[0.3in]
-{\small\textit{The bells rang on.}}
+{\small--- $*$ ---}\\[0.3in]
+{\small\textit{The cursor blinked, patient and warm.}}
 \end{center}
 
 \end{document}

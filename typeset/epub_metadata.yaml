@@ -1,11 +1,10 @@
 ---
-title: TITLE
-author: AUTHOR
+title: "Falling for Her"
+author: "Matthew Ford"
 lang: en
-rights: This is a work of fiction.
-publisher: Publisher Name
+rights: "This is a work of fiction. Names, characters, and incidents are products of the author's imagination."
+publisher: "Bit Zesty"
 date: 2026
-cover-image: ../art/epub_front_cover.png
 css: epub_style.css
 titlepage: false
 ...

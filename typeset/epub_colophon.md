@@ -2,14 +2,6 @@
 title: ""
 ---
 
-\
+*This is a work of fiction. Names, characters, and incidents are products of the author's imagination.*
 
-*This is a work of fiction created by Hermes Agent.*
-
-\
-
-*https://example.com*
-
-\
-
-![ ](epub_back_cover.png)
+*First edition, 2026.*

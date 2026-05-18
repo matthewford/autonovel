@@ -1,0 +1,8 @@
+file '/home/hermes/autonovel/audiobook/chapters/ch_01.wav'
+file '/home/hermes/autonovel/audiobook/chapters/ch_02.wav'
+file '/home/hermes/autonovel/audiobook/chapters/ch_03.wav'
+file '/home/hermes/autonovel/audiobook/chapters/ch_04.wav'
+file '/home/hermes/autonovel/audiobook/chapters/ch_05.wav'
+file '/home/hermes/autonovel/audiobook/chapters/ch_06.wav'
+file '/home/hermes/autonovel/audiobook/chapters/ch_07.wav'
+file '/home/hermes/autonovel/audiobook/chapters/ch_08.wav'
