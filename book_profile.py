@@ -119,6 +119,7 @@ class RoleConfig:
     provider: str
     profile: str
     toolsets: str
+    use_goals: bool
     temperature: float
     timeout_seconds: int
 
@@ -162,6 +163,13 @@ class BookProfile:
             "reader": "claude-opus-4-6",
         }[role_key]
         prefix = f"AUTONOVEL_HERMES_{role_key.upper()}_"
+        use_goals = os.environ.get(
+            f"{prefix}USE_GOALS",
+            os.environ.get(
+                "AUTONOVEL_HERMES_USE_GOALS",
+                str(self.get(f"generation.{role_key}.use_goals", self.get("generation.use_goals", False))),
+            ),
+        )
         return RoleConfig(
             backend=backend,
             role=role_key,
@@ -184,6 +192,7 @@ class BookProfile:
                 f"{prefix}TOOLSETS",
                 os.environ.get("AUTONOVEL_HERMES_TOOLSETS", str(self.get(f"generation.{role_key}.toolsets", "file,safe"))),
             ),
+            use_goals=str(use_goals).lower() in {"1", "true", "yes", "on"},
             temperature=float(self.get(f"generation.{role_key}.temperature", 0.7)),
             timeout_seconds=int(self.get(f"generation.{role_key}.timeout_seconds", 900)),
         )

@@ -27,6 +27,7 @@ uv sync
 # AUTONOVEL_LLM_BACKEND=hermes
 # AUTONOVEL_HERMES_PROVIDER=zai
 # AUTONOVEL_HERMES_MODEL=glm-5.1
+# AUTONOVEL_HERMES_USE_GOALS=true
 
 # Generate a seed concept (or write your own in seed.txt)
 uv run python seed.py
@@ -83,6 +84,7 @@ AUTONOVEL_HERMES_PROVIDER=<provider>
 AUTONOVEL_HERMES_MODEL=<model>
 AUTONOVEL_HERMES_PROFILE=        # optional; leave blank unless created
 AUTONOVEL_HERMES_TOOLSETS=file,safe
+AUTONOVEL_HERMES_USE_GOALS=true  # use Hermes /goal auto-continuation
 ```
 
 Role-specific overrides are also supported:

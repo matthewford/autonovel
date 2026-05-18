@@ -22,6 +22,7 @@ voice:
 
 generation:
   backend: hermes
+  use_goals: true
   writer:
     profile: autonovel
     provider: zai

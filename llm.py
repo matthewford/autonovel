@@ -71,6 +71,8 @@ def model_fingerprint(role: str = "writer") -> str:
             parts.append(cfg.model)
         if cfg.profile:
             parts.append(f"profile={cfg.profile}")
+        if cfg.use_goals:
+            parts.append("goals")
         return "/".join(parts)
     return f"anthropic/{cfg.model}"
 
@@ -135,6 +137,15 @@ Wrap the output exactly like this:
 <your output>
 {SENTINEL_END}
 """
+    if cfg.use_goals:
+        goal = (
+            "Produce the complete AutoNovel backend response for this call. "
+            f"The goal is complete only when the final response contains output wrapped between "
+            f"{SENTINEL_START} and {SENTINEL_END}, follows the requested format, and includes no "
+            "process commentary outside those markers."
+        )
+        query = f"/goal {goal}\n\n{query}"
+
     cmd = ["hermes", "chat", "-Q", "-q", query]
     if cfg.profile:
         cmd.extend(["--profile", cfg.profile])
