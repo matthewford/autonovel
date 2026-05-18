@@ -18,6 +18,7 @@ uv run python seed.py
 
 # 3. Create a branch for your novel
 git checkout -b autonovel/my-novel
+# Edit book.yaml with this book's slug, title, targets, and model settings
 
 # 4. Run the full pipeline
 uv run python run_pipeline.py --from-scratch
@@ -27,7 +28,7 @@ The pipeline will:
 1. Build the world, characters, outline, and voice (Phase 1)
 2. Draft all chapters sequentially (Phase 2)
 3. Revise through automated cycles + Opus review (Phase 3)
-4. Export to manuscript, PDF, ePub (Phase 4)
+4. Export to manuscript/PDF, plus optional art and audiobook assets when configured (Phase 4)
 
 ---
 
@@ -78,14 +79,18 @@ uv run python gen_art.py vectorize              # Convert to SVG → PDF
 uv run python gen_cover_print.py art/cover.png --canvas-width 11.889 --canvas-height 8.75 --spine-width 0.639
 ```
 
-### Audiobook (requires ELEVENLABS_API_KEY)
+### Audiobook (defaults to local Pocket TTS)
 ```bash
 uv run python gen_audiobook_script.py           # Parse all chapters
-uv run python gen_audiobook.py --list-voices    # Browse voices
+uv run python gen_audiobook.py --provider pocket-tts --test 1  # Test local Samantha voice
 uv run python gen_audiobook.py --test 1         # Test chapter 1
 uv run python gen_audiobook.py                  # Generate all
 uv run python gen_audiobook.py --assemble       # Concatenate
 ```
+
+The default provider is `pocket-tts`, matching Hermes local TTS:
+`/home/hermes/.hermes/scripts/pocket_tts_provider.py`, voice `Samantha`.
+Set `AUTONOVEL_AUDIOBOOK_PROVIDER=elevenlabs` only if using ElevenLabs.
 
 ### Export
 ```bash

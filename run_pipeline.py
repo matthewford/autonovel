@@ -828,7 +828,7 @@ def run_export(state: dict) -> dict:
     build_tex = BASE_DIR / "typeset" / "build_tex.py"
     if build_tex.exists():
         step("Building LaTeX content...")
-        run_tool(f"uv run python typeset/build_tex.py", timeout=120)
+        run_required(f"uv run python typeset/build_tex.py", timeout=300)
 
         # 5. Typeset with tectonic (if available)
         novel_tex = BASE_DIR / "typeset" / "novel.tex"
@@ -846,8 +846,39 @@ def run_export(state: dict) -> dict:
     else:
         step("typeset/build_tex.py not found, skipping LaTeX")
 
-    # 6. Final commit
-    commit_hash = git_add_commit("export: manuscript, outline, arc summary, PDF")
+    # 6. Optional art and cover assets. This can incur external API cost, so it
+    # runs only when FAL_KEY is configured.
+    if optional_env_configured("FAL_KEY"):
+        gen_art = BASE_DIR / "gen_art.py"
+        if gen_art.exists():
+            step("Generating art assets via fal.ai...")
+            uv_required("gen_art.py all", timeout=1800)
+        else:
+            step("gen_art.py not found, skipping art generation")
+    else:
+        step("FAL_KEY not configured, skipping art generation")
+
+    # 7. Optional audiobook scripts/audio. Script parsing is cheap model work;
+    # audio generation runs only when a TTS provider is configured.
+    audiobook_script = BASE_DIR / "gen_audiobook_script.py"
+    if audiobook_script.exists() and chapter_files:
+        step("Generating audiobook scripts...")
+        uv_required("gen_audiobook_script.py", timeout=1800)
+    elif not chapter_files:
+        step("No chapters found, skipping audiobook scripts")
+
+    audiobook_provider = os.environ.get("AUTONOVEL_AUDIOBOOK_PROVIDER", "pocket-tts")
+    if audiobook_provider == "elevenlabs" and optional_env_configured("ELEVENLABS_API_KEY"):
+        step("Generating audiobook audio with ElevenLabs...")
+        uv_required("gen_audiobook.py --provider elevenlabs", timeout=7200)
+    elif audiobook_provider in {"pocket-tts", "kokoro", "piper", "mlx", "kittentts", "openai"}:
+        step(f"Generating audiobook audio with {audiobook_provider}...")
+        uv_required(f"gen_audiobook.py --provider {audiobook_provider}", timeout=7200)
+    else:
+        step("No audiobook TTS provider configured, skipping audio generation")
+
+    # 8. Final commit
+    commit_hash = git_add_commit("export: manuscript and publication assets")
     total_words = count_words_in_chapters()
     log_result(commit_hash, "export", state.get("novel_score", "?"),
                total_words, "export", "Final export")
