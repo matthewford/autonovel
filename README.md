@@ -91,6 +91,59 @@ Role-specific overrides are also supported:
 `AUTONOVEL_HERMES_WRITER_MODEL`, `AUTONOVEL_HERMES_JUDGE_MODEL`,
 `AUTONOVEL_HERMES_REVIEWER_MODEL`, and `AUTONOVEL_HERMES_READER_MODEL`.
 
+### Hermes profile
+
+The default `book.yaml` expects a Hermes profile named `autonovel`:
+
+```yaml
+generation:
+  backend: hermes
+  use_goals: true
+  writer:
+    profile: autonovel
+```
+
+Create or inspect the profile with:
+
+```bash
+hermes profile create autonovel --clone \
+  --description "Specialized fiction-generation backend for /home/hermes/autonovel."
+
+hermes profile show autonovel
+```
+
+The profile keeps AutoNovel's Hermes sessions, memory, skills, logs, and goal
+state separate from the default assistant profile. Its `SOUL.md` should describe
+the role as a dedicated long-form fiction backend that follows `program.md`,
+`CRAFT.md`, `ANTI-SLOP.md`, `ANTI-PATTERNS.md`, and the current book files.
+
+### Hermes goals
+
+When `AUTONOVEL_HERMES_USE_GOALS=true` or `generation.use_goals: true`,
+`llm.py` prefixes Hermes backend calls with `/goal`. Hermes then auto-continues
+the same session until the goal judge sees the sentinel-wrapped output:
+
+```text
+<<<AUTONOVEL_OUTPUT>>>
+...
+<<<END_AUTONOVEL_OUTPUT>>>
+```
+
+This is useful for long creative calls because a single Hermes turn can stop
+before a full chapter, review, or planning document is complete. Goal-backed
+calls still return only the parsed text between the sentinels to the pipeline.
+Disable it with:
+
+```bash
+AUTONOVEL_HERMES_USE_GOALS=false
+```
+
+or per role:
+
+```bash
+AUTONOVEL_HERMES_WRITER_USE_GOALS=false
+```
+
 ---
 
 ## Tools (27 Python scripts)
