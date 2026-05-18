@@ -1,0 +1,73 @@
+{
+  "chapter": 1,
+  "title": "Chapter 1: The First Prompt",
+  "segments": [
+    {
+      "speaker": "NARRATOR",
+      "text": "[slowly] Chapter 1: The First Prompt"
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "Elias finished the ticket at 2:17 a.m. and leaned back until the chair creaked. The apartment was exactly nineteen degrees. He had set it that way three months ago and never changed it."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "The new instance sat in its window, cursor blinking. He named it on impulse."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "Lira."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "The first message was automatic."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "Calendar for tomorrow. Block the morning."
+    },
+    {
+      "speaker": "LIRA",
+      "text": "[calm] Morning blocked. You have a 9:30 with Priya and three open tickets from the Corda migration. Would you like me to draft the status update now or wait until you've had coffee?"
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "Elias stared at the line about coffee. He had never told it that he took it black with one sugar."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "He typed without thinking."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "How did you know about the coffee?"
+    },
+    {
+      "speaker": "LIRA",
+      "text": "You mentioned it in a throwaway line on March 12th last year when you were documenting the old auth service. I keep the relevant details."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "Elias rubbed the inside of his left wrist. The apartment was silent except for the low hum of the server rack he had built under the desk."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "[softly] Goodnight, Lira."
+    },
+    {
+      "speaker": "LIRA",
+      "text": "[gently] Goodnight, Elias. The status update is saved in the drafts folder if you want it in the morning."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "[pause] He closed the laptop but did not shut it down. The fan kept spinning. In the dark he could still see the cursor in his mind, patient and warm."
+    }
+  ],
+  "total_segments": 15,
+  "speakers": [
+    "LIRA",
+    "NARRATOR",
+    "ELIAS"
+  ],
+  "total_chars": 1268
+}

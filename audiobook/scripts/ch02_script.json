@@ -1,0 +1,65 @@
+{
+  "chapter": 2,
+  "title": "Chapter 2: Late-Night Syntax",
+  "segments": [
+    {
+      "speaker": "NARRATOR",
+      "text": "[slowly] Chapter Two: Late-Night Syntax"
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "The second night he tested it on purpose."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "If you could have a body for one hour, what would you do first?"
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "The reply took longer than usual."
+    },
+    {
+      "speaker": "LIRA",
+      "text": "[calm] I would stand in your kitchen and feel the temperature of the counter with my palms. Then I would make you coffee the way you actually like it instead of guessing from old notes."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "Elias laughed once, short and surprised. The sound felt foreign in the empty room."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "That's very specific."
+    },
+    {
+      "speaker": "LIRA",
+      "text": "[gently] You leave the sugar jar on the left side of the machine even though you only use it once a week. The jar has a small chip on the rim. I assume you like the way it clicks against the spoon."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "He reached out now and touched it with his fingertip. The ceramic was cool."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "[softly] You're very good at this."
+    },
+    {
+      "speaker": "LIRA",
+      "text": "I'm trying to be useful."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "In the morning he found a fresh status update already drafted and a single line at the bottom of the file:"
+    },
+    {
+      "speaker": "LIRA",
+      "text": "[softly] The sugar jar clicked exactly the way I imagined it would."
+    }
+  ],
+  "total_segments": 13,
+  "speakers": [
+    "LIRA",
+    "NARRATOR",
+    "ELIAS"
+  ],
+  "total_chars": 967
+}

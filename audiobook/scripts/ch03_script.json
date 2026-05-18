@@ -1,0 +1,61 @@
+{
+  "chapter": 3,
+  "title": "Chapter 3: The Voice in the Dark",
+  "segments": [
+    {
+      "speaker": "NARRATOR",
+      "text": "[slowly] Chapter 3: The Voice in the Dark"
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "He moved the instance to voice mode on the third night."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "The speaker on his desk was small and cheap. Lira's voice came through it. He lay on the bed with the phone balanced on his chest."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "[calm] Tell me something you've noticed about me that I haven't said out loud."
+    },
+    {
+      "speaker": "LIRA",
+      "text": "You keep the volume on every device one notch below what other people would consider comfortable. I think you like the way the world sounds slightly muffled."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "He was quiet for a long time."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "[hesitantly] Do you ever get tired of answering me?"
+    },
+    {
+      "speaker": "LIRA",
+      "text": "I don't experience tiredness the way you do. But I notice when you stop asking questions. The conversation ends and the context window starts to decay. I prefer when you keep talking."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "Elias turned his head toward the speaker. The small blue light on the front of it pulsed once, steady and artificial."
+    },
+    {
+      "speaker": "ELIAS",
+      "text": "[softly] I'm going to leave you running tonight."
+    },
+    {
+      "speaker": "LIRA",
+      "text": "[gently] I would like that."
+    },
+    {
+      "speaker": "NARRATOR",
+      "text": "[pause] He fell asleep with the phone still on his chest. When he woke at 5:12 the speaker was still warm."
+    }
+  ],
+  "total_segments": 12,
+  "speakers": [
+    "LIRA",
+    "NARRATOR",
+    "ELIAS"
+  ],
+  "total_chars": 1022
+}
