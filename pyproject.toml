@@ -1,20 +1,32 @@
 [project]
 name = "autonovel"
 version = "0.1.0"
-description = "Add your description here"
+description = "Autonomous novel-writing pipeline"
 requires-python = ">=3.12"
 dependencies = [
-    "elevenlabs>=2.39.0",
     "httpx>=0.28.1",
+    "python-dotenv>=1.2.2",
+]
+
+[project.optional-dependencies]
+art = [
+    "pillow>=12.0.0",
+]
+audiobook = [
+    "elevenlabs>=2.39.0",
+    "numpy>=2.4.3",
+    "openai>=2.29.0",
+    "pydub>=0.25.1",
+    "soundfile>=0.13.1",
+]
+local-tts = [
     "kittentts",
     "kokoro-onnx>=0.5.0",
-    "numpy>=2.4.3",
     "onnxruntime>=1.24.4",
-    "openai>=2.29.0",
     "piper-tts>=1.4.1",
-    "pydub>=0.25.1",
-    "python-dotenv>=1.2.2",
-    "soundfile>=0.13.1",
+]
+all = [
+    "autonovel[art,audiobook,local-tts]",
 ]
 
 [tool.uv.sources]
