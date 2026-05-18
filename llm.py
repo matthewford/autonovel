@@ -162,7 +162,7 @@ Wrap the output exactly like this:
             capture_output=True,
             text=True,
             cwd=str(BASE_DIR),
-            timeout=timeout or cfg.timeout_seconds,
+            timeout=timeout or cfg.timeout_seconds or 1800,
         )
     finally:
         try:

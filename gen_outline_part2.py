@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate remaining chapters + foreshadowing ledger."""
+"""Generate remaining chapters + foreshadowing ledger (generic version)."""
 import os
 import sys
 from pathlib import Path
@@ -25,14 +25,21 @@ def call_writer(prompt, max_tokens=16000):
         ),
     )
 
-part1 =open('/tmp/outline_output.md').read()
-mystery = (BASE_DIR / "MYSTERY.md").read_text()
+# Prefer existing outline.md, fall back to temp file
+outline_path = BASE_DIR / "outline.md"
+if outline_path.exists():
+    part1 = outline_path.read_text()
+else:
+    try:
+        part1 = open('/tmp/outline_output.md').read()
+    except FileNotFoundError:
+        part1 = ""
+
+mystery = (BASE_DIR / "MYSTERY.md").read_text() if (BASE_DIR / "MYSTERY.md").exists() else ""
 profile = load_book_profile(BASE_DIR)
 title = get_novel_title(BASE_DIR)
 
-prompt = f"""Here are the first chapters of a {profile.chapters_target}-chapter outline for "{title}."
-The outline was cut off. Continue from where it left off, then complete the remaining chapters,
-then write the Foreshadowing Ledger.
+prompt = f"""Continue or complete the chapter outline for "{title}".
 
 THE OUTLINE SO FAR:
 {part1}
@@ -40,33 +47,10 @@ THE OUTLINE SO FAR:
 THE CENTRAL MYSTERY (for reference):
 {mystery}
 
-REMAINING STRUCTURE NEEDED:
+Complete any missing chapters and then write a complete Foreshadowing Ledger table with at least 12-15 threads.
+Use the same format as the existing outline (Ch N, POV, Save the Cat beat, % mark, Emotional arc, Try-fail cycle, Beats, Plants, Payoffs, etc.).
 
-Ch 17 (complete it): Maret confrontation -- she reveals the truth about the void
-Ch 18: Dark Night of the Soul -- Cass processes what he's learned
-Ch 19: Break Into Three -- new information or perspective changes everything  
-Ch 20-21: Gathering forces, making a plan
-Ch 22: The climax at the Bell Tower -- Cass answers the question
-Ch 23: Aftermath and resolution
-Ch 24: Final Image (mirror of Opening Image)
-
-Then write:
-
-## Foreshadowing Ledger
-
-| # | Thread | Planted (Ch) | Reinforced (Ch) | Payoff (Ch) | Type |
-|---|--------|-------------|-----------------|-------------|------|
-
-Include at LEAST 15 threads. Types: object, dialogue, action, symbolic, structural.
-Plant-to-payoff distance must be at least 3 chapters.
-
-REMEMBER:
-- The climax uses the fourth option: Cass amplifies the question into audible range
-  so the city can hear and answer for themselves
-- This doesn't free Perin directly (Stability Trap -- not everything resolves cleanly)
-- Cass's lie must be fully shattered by the climax
-- Final Image should mirror Ch 1's Opening Image but show transformation
-- At least one quiet chapter in the back half
+Target: {profile.chapters_target} chapters total.
 """
 
 print("Calling writer model...", file=sys.stderr)
