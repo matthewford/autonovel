@@ -19,6 +19,7 @@ import argparse
 import json
 import os
 import re
+import shlex
 import subprocess
 import sys
 from datetime import datetime
@@ -87,6 +88,12 @@ def save_state(state: dict):
 def log_result(commit: str, phase: str, score, word_count: int,
                status: str, description: str):
     """Append a row to results.tsv."""
+    try:
+        from llm import model_fingerprint
+
+        description = f"{description} [model={model_fingerprint('judge')}]"
+    except Exception:
+        pass
     header = "commit\tphase\tscore\tword_count\tstatus\tdescription\n"
     if not RESULTS_FILE.exists():
         RESULTS_FILE.write_text(header)
@@ -113,16 +120,19 @@ def step(text: str):
 # Helpers: subprocess execution
 # ---------------------------------------------------------------------------
 
-def run_tool(cmd: str, timeout: int = 600, check: bool = False) -> subprocess.CompletedProcess:
+def run_tool(cmd: str | list[str], timeout: int = 600, check: bool = False) -> subprocess.CompletedProcess:
     """
     Run a tool as a subprocess, capturing output.
-    Uses shell=True so callers can pass full command strings.
+    String commands are split with shlex; prompts and file paths should never be
+    shell-interpolated.
     Returns CompletedProcess; never raises unless check=True.
     """
-    step(f"RUN: {cmd}")
+    display = cmd if isinstance(cmd, str) else " ".join(shlex.quote(part) for part in cmd)
+    argv = shlex.split(cmd) if isinstance(cmd, str) else cmd
+    step(f"RUN: {display}")
     try:
         result = subprocess.run(
-            cmd, shell=True, capture_output=True, text=True,
+            argv, capture_output=True, text=True,
             timeout=timeout, cwd=str(BASE_DIR),
         )
         if result.returncode != 0:
@@ -143,7 +153,7 @@ def run_tool(cmd: str, timeout: int = 600, check: bool = False) -> subprocess.Co
 
 def uv_run(script: str, timeout: int = 600) -> subprocess.CompletedProcess:
     """Shorthand for 'uv run python <script>' from project root."""
-    return run_tool(f"uv run python {script}", timeout=timeout)
+    return run_tool(["uv", "run", "python", *shlex.split(script)], timeout=timeout)
 
 
 # ---------------------------------------------------------------------------
@@ -153,7 +163,7 @@ def uv_run(script: str, timeout: int = 600) -> subprocess.CompletedProcess:
 def git_add_commit(message: str) -> str:
     """Stage all changes and commit. Returns short hash or empty string."""
     run_tool("git add -A")
-    result = run_tool(f'git commit -m "{message}" --allow-empty')
+    result = run_tool(["git", "commit", "-m", message, "--allow-empty"])
     if result.returncode == 0:
         hash_result = run_tool("git rev-parse --short HEAD")
         commit_hash = hash_result.stdout.strip()
@@ -368,7 +378,7 @@ def run_drafting(state: dict) -> dict:
                            "discard", f"Chapter {ch} attempt {attempt}")
                 # Remove the bad chapter file so next attempt starts fresh
                 if ch_file.exists():
-                    run_tool(f"git checkout -- chapters/ch_{ch:02d}.md 2>/dev/null || true")
+                    run_tool(["git", "checkout", "--", f"chapters/ch_{ch:02d}.md"])
 
         if not drafted:
             step(f"WARNING: Chapter {ch} failed all {MAX_CHAPTER_ATTEMPTS} attempts, "
