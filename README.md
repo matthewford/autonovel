@@ -23,6 +23,11 @@ cp .env.example .env    # Add your API keys
 # Install dependencies
 uv sync
 
+# Default generation backend is Hermes via book.yaml/.env:
+# AUTONOVEL_LLM_BACKEND=hermes
+# AUTONOVEL_HERMES_PROVIDER=zai
+# AUTONOVEL_HERMES_MODEL=glm-5.1
+
 # Generate a seed concept (or write your own in seed.txt)
 uv run python seed.py
 
@@ -56,6 +61,33 @@ Rebuild docs, typeset in LaTeX, generate art, produce audiobook scripts,
 build ePub, create landing page.
 
 See [PIPELINE.md](PIPELINE.md) for the full technical specification.
+
+---
+
+## Model Backend
+
+Generation is routed through `llm.py`, configured by `book.yaml` and
+environment overrides. The repo supports:
+
+```bash
+AUTONOVEL_LLM_BACKEND=hermes     # use `hermes chat`
+AUTONOVEL_LLM_BACKEND=anthropic  # direct Anthropic Messages API
+```
+
+For Hermes, set provider/model once in `book.yaml` or `.env`. When a
+subscription-backed model such as SuperGrok is available in Hermes, swap only
+the provider/model/profile settings:
+
+```bash
+AUTONOVEL_HERMES_PROVIDER=<provider>
+AUTONOVEL_HERMES_MODEL=<model>
+AUTONOVEL_HERMES_PROFILE=        # optional; leave blank unless created
+AUTONOVEL_HERMES_TOOLSETS=file,safe
+```
+
+Role-specific overrides are also supported:
+`AUTONOVEL_HERMES_WRITER_MODEL`, `AUTONOVEL_HERMES_JUDGE_MODEL`,
+`AUTONOVEL_HERMES_REVIEWER_MODEL`, and `AUTONOVEL_HERMES_READER_MODEL`.
 
 ---
 
@@ -147,7 +179,10 @@ ART:
   landing/index.html     — Responsive landing page template
 
 CONFIG:
+  book.yaml              — Book profile and role-specific generation settings
   .env.example           — API keys (Anthropic, fal.ai, ElevenLabs)
+  book_profile.py        — Profile parser/defaults
+  llm.py                 — Anthropic/Hermes model gateway
   pyproject.toml         — Python dependencies
 ```
 

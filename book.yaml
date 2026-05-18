@@ -1,0 +1,57 @@
+slug: autonovel
+title: The Second Son of the House of Bells
+genre: literary fantasy
+market_positioning: "Le Guin restraint, Piranesi-like mystery, emotionally precise fantasy"
+target_length_words: 85000
+chapter_target_words: 3200
+chapters_target: 24
+
+pov:
+  person: third
+  tense: past
+  mode: limited
+  default_character: ""
+
+voice:
+  style_summary: ""
+  banned_patterns_file: voice.md
+  craft_files:
+    - CRAFT.md
+    - ANTI-SLOP.md
+    - ANTI-PATTERNS.md
+
+generation:
+  backend: hermes
+  writer:
+    profile: autonovel
+    provider: zai
+    model: glm-5.1
+    toolsets: file,safe
+    temperature: 0.8
+    timeout_seconds: 900
+  judge:
+    profile: autonovel
+    provider: zai
+    model: glm-5.1
+    toolsets: file,safe
+    temperature: 0.3
+    timeout_seconds: 900
+  reviewer:
+    profile: autonovel
+    provider: zai
+    model: glm-5.1
+    toolsets: file,safe
+    temperature: 0.4
+    timeout_seconds: 900
+  reader:
+    profile: autonovel
+    provider: zai
+    model: glm-5.1
+    toolsets: file,safe
+    temperature: 0.6
+    timeout_seconds: 900
+
+constraints:
+  no_web_ui_scraping: true
+  branch_per_book: true
+  require_clean_git_before_run: true

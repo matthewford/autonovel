@@ -68,6 +68,39 @@ def get_thinking_budget(max_tokens):
     return {}
 
 
+def get_novel_title(base_dir=None):
+    """
+    Return the configured novel title, falling back to outline headings.
+    """
+    if base_dir is None:
+        base_dir = BASE_DIR
+    try:
+        from book_profile import load_book_profile
+
+        title = load_book_profile(Path(base_dir)).title
+        if title and title != "the novel":
+            return title
+    except Exception:
+        pass
+
+    import re
+
+    outline_path = Path(base_dir) / "outline.md"
+    if not outline_path.exists():
+        return "the novel"
+    text = outline_path.read_text()
+    skip = re.compile(
+        r"act\s+structure|chapter|foreshadowing|outline|part\s+\d",
+        re.IGNORECASE,
+    )
+    for line in text.splitlines():
+        if line.startswith("#"):
+            title = line.lstrip("#").strip()
+            if title and not skip.search(title):
+                return title
+    return "the novel"
+
+
 def get_max_tokens_with_thinking(base_max_tokens):
     """
     Return an appropriate max_tokens value that accounts for thinking overhead.
