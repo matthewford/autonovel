@@ -7,39 +7,25 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
-from utils import extract_text_from_response, get_max_tokens_with_thinking
+from llm import generate
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-WRITER_MODEL = os.environ.get("AUTONOVEL_WRITER_MODEL", "claude-sonnet-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
-
 def call_writer(prompt, max_tokens=16000):
-    max_tokens = get_max_tokens_with_thinking(max_tokens)
-    import httpx
-    headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
-    payload = {
-        "model": WRITER_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.7,
-        "system": (
+    return generate(
+        prompt,
+        role="writer",
+        max_tokens=max_tokens,
+        temperature=0.7,
+        system=(
             "You are a character designer for literary fiction with deep knowledge of "
             "wound/want/need/lie frameworks, Sanderson's three sliders, and dialogue "
             "distinctiveness. You create characters who feel like real people with "
             "contradictions, secrets, and speech patterns you can hear. "
             "You never use AI slop words. You write in clean, direct prose."
         ),
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=300)
-    resp.raise_for_status()
-    return extract_text_from_response(resp.json())
+    )
 
 seed =(BASE_DIR / "seed.txt").read_text()
 world = (BASE_DIR / "world.md").read_text()
@@ -85,9 +71,9 @@ Rules: Want and Need must be IN TENSION. Lie statable in one sentence.
 7. Metaphor domain  8. Directness vs indirectness
 Test: Remove dialogue tags. Can you tell who's speaking?
 
-BUILD THE REGISTRY WITH AT LEAST THESE CHARACTERS:
+BUILD THE REGISTRY WITH:
 
-1. **Cass Bellwright** (protagonist, POV character)
+1. The protagonist / primary POV character implied by the seed, world, and voice
    - Full wound/want/need/lie chain
    - Three sliders with justification
    - Arc type (positive/negative/flat)

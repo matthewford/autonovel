@@ -7,39 +7,25 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
-from utils import extract_text_from_response, get_max_tokens_with_thinking
+from llm import generate
+from utils import get_novel_title
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-WRITER_MODEL = os.environ.get("AUTONOVEL_WRITER_MODEL", "claude-sonnet-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
-
 def call_writer(prompt, max_tokens=16000):
-    max_tokens = get_max_tokens_with_thinking(max_tokens)
-    import httpx
-    headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-beta": "context-1m-2025-08-07",
-        "content-type": "application/json",
-    }
-    payload = {
-        "model": WRITER_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.8,
-        "system": (
+    return generate(
+        prompt,
+        role="writer",
+        max_tokens=max_tokens,
+        temperature=0.8,
+        system=(
             "You are rewriting a fantasy novel chapter based on a specific revision brief. "
             "You follow the brief exactly. You preserve the voice, world, and characters "
             "from the existing draft while making the structural changes specified. "
             "You write the FULL chapter. Do not truncate or summarize."
         ),
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=600)
-    resp.raise_for_status()
-    return extract_text_from_response(resp.json())
+    )
 
 def main():
     ch_num = int(sys.argv[1])
@@ -60,7 +46,7 @@ def main():
     old_path = BASE_DIR / "chapters" / f"ch_{ch_num:02d}.md"
     old_text = old_path.read_text() if old_path.exists() else "(no existing draft)"
     
-    prompt = f"""Rewrite Chapter {ch_num} of "The Second Son of the House of Bells."
+    prompt = f"""Rewrite Chapter {ch_num} of "{get_novel_title(BASE_DIR)}."
 
 REVISION BRIEF (follow this exactly):
 {brief}

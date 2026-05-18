@@ -8,34 +8,23 @@ import os
 import re
 from pathlib import Path
 from dotenv import load_dotenv
-from utils import extract_text_from_response, get_max_tokens_with_thinking
+from llm import generate
+from utils import get_novel_title
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-WRITER_MODEL = os.environ.get("AUTONOVEL_WRITER_MODEL", "claude-sonnet-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
 CHAPTERS_DIR = BASE_DIR / "chapters"
 
 def call_writer(prompt, max_tokens=4000):
-    max_tokens = get_max_tokens_with_thinking(max_tokens)
-    import httpx
-    headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
-    payload = {
-        "model": WRITER_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.1,
-        "system": "You summarize novel chapters precisely. State what HAPPENS, what CHANGES, and what QUESTIONS are left open. No evaluation. No praise. Just events and shifts.",
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=120)
-    resp.raise_for_status()
-    return extract_text_from_response(resp.json())
+    return generate(
+        prompt,
+        role="writer",
+        max_tokens=max_tokens,
+        temperature=0.1,
+        timeout=120,
+        system="You summarize novel chapters precisely. State what HAPPENS, what CHANGES, and what QUESTIONS are left open. No evaluation. No praise. Just events and shifts.",
+    )
 
 def extract_key_passages(text):
     """Get opening, closing, and best dialogue from a chapter."""
@@ -85,7 +74,7 @@ def main():
     total_wc = sum(len((CHAPTERS_DIR / f"ch_{c:02d}.md").read_text().split()) for c in range(1, 20))
     
     # Assemble
-    full = f"""# THE SECOND SON OF THE HOUSE OF BELLS
+    full = f"""# {get_novel_title(BASE_DIR).upper()}
 ## Full-Arc Summary for Reader Panel
 
 This document contains chapter summaries, opening/closing passages,

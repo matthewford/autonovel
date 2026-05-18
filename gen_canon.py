@@ -6,38 +6,24 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
-from utils import extract_text_from_response, get_max_tokens_with_thinking
+from llm import generate
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-WRITER_MODEL = os.environ.get("AUTONOVEL_WRITER_MODEL", "claude-sonnet-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
-
 def call_writer(prompt, max_tokens=16000):
-    max_tokens = get_max_tokens_with_thinking(max_tokens)
-    import httpx
-    headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
-    payload = {
-        "model": WRITER_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.2,  # Low temp for factual extraction
-        "system": (
+    return generate(
+        prompt,
+        role="writer",
+        max_tokens=max_tokens,
+        temperature=0.2,  # Low temp for factual extraction
+        system=(
             "You are a continuity editor extracting hard facts from fantasy novel "
             "planning documents. You are precise, exhaustive, and never invent facts "
             "that aren't in the source material. Every entry must be traceable to a "
             "specific statement in the source documents."
         ),
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=300)
-    resp.raise_for_status()
-    return extract_text_from_response(resp.json())
+    )
 
 world =(BASE_DIR / "world.md").read_text()
 characters = (BASE_DIR / "characters.md").read_text()
@@ -67,8 +53,8 @@ FORMAT THE OUTPUT AS CANON.MD with these categories:
 - Dated events, ages, durations
 
 ## Magic System Rules
-- Hard rules of Tonal Law (intervals, costs, limitations)
-- Cass's gift specifics
+- Hard rules of the speculative system, costs, limitations
+- The protagonist's unusual abilities or constraints, if any
 
 ## Character Facts
 - Ages, physical descriptions, habits, relationships

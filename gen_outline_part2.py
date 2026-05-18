@@ -4,44 +4,34 @@ import os
 import sys
 from pathlib import Path
 from dotenv import load_dotenv
-from utils import extract_text_from_response, get_max_tokens_with_thinking
+from book_profile import load_book_profile
+from llm import generate
+from utils import get_novel_title
 
 BASE_DIR = Path(__file__).parent
 load_dotenv(BASE_DIR / ".env")
 
-WRITER_MODEL = os.environ.get("AUTONOVEL_WRITER_MODEL", "claude-sonnet-4-6")
-API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-API_BASE = os.environ.get("AUTONOVEL_API_BASE_URL", "https://api.anthropic.com")
-
 def call_writer(prompt, max_tokens=16000):
-    max_tokens = get_max_tokens_with_thinking(max_tokens)
-    import httpx
-    headers = {
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-    }
-    payload = {
-        "model": WRITER_MODEL,
-        "max_tokens": max_tokens,
-        "temperature": 0.5,
-        "system": (
+    return generate(
+        prompt,
+        role="writer",
+        max_tokens=max_tokens,
+        temperature=0.5,
+        system=(
             "You are a novel architect continuing an outline. Write in the same format "
             "as the preceding chapters. Every chapter needs: POV, Location, Save the Cat beat, "
             "% mark, Emotional arc, Try-fail cycle, Beats, Plants, Payoffs, Character movement, "
             "The lie, Word count target."
         ),
-        "messages": [{"role": "user", "content": prompt}],
-    }
-    resp = httpx.post(f"{API_BASE}/v1/messages", headers=headers, json=payload, timeout=600)
-    resp.raise_for_status()
-    return extract_text_from_response(resp.json())
+    )
 
 part1 =open('/tmp/outline_output.md').read()
 mystery = (BASE_DIR / "MYSTERY.md").read_text()
+profile = load_book_profile(BASE_DIR)
+title = get_novel_title(BASE_DIR)
 
-prompt = f"""Here are the first 17 chapters of a 24-chapter outline for "The Second Son of the House of Bells."
-The outline was cut off mid-chapter-17. Continue from where it left off, then complete chapters 18-24,
+prompt = f"""Here are the first chapters of a {profile.chapters_target}-chapter outline for "{title}."
+The outline was cut off. Continue from where it left off, then complete the remaining chapters,
 then write the Foreshadowing Ledger.
 
 THE OUTLINE SO FAR:
