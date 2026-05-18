@@ -19,13 +19,13 @@ import io
 import re
 import time
 import argparse
+import subprocess
+import tempfile
+import wave
 from pathlib import Path
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional
 from dotenv import load_dotenv
-import numpy as np
-import soundfile as sf
-from pydub import AudioSegment
 import httpx
 
 BASE_DIR = Path(__file__).parent
@@ -55,6 +55,11 @@ class TTSProvider(ABC):
     def max_chars(self) -> int:
         """Maximum characters allowed per generation call."""
         pass
+
+    @property
+    def output_format(self) -> str:
+        """File extension/format produced by this provider."""
+        return "mp3"
 
 
 class ElevenLabsProvider(TTSProvider):
@@ -101,6 +106,10 @@ class KokoroProvider(TTSProvider):
         return self._max_chars
 
     def generate(self, segments: List[Dict[str, str]]) -> bytes:
+        import numpy as np
+        import soundfile as sf
+        from pydub import AudioSegment
+
         combined_audio = []
         sample_rate = 24000
         for seg in segments:
@@ -133,6 +142,10 @@ class KittenTTSProvider(TTSProvider):
         return self._max_chars
 
     def generate(self, segments: List[Dict[str, str]]) -> bytes:
+        import numpy as np
+        import soundfile as sf
+        from pydub import AudioSegment
+
         combined_audio = []
         sample_rate = 24000
         for seg in segments:
@@ -180,6 +193,8 @@ class PiperProvider(TTSProvider):
         return self.voices_cache[voice_id]
 
     def generate(self, segments: List[Dict[str, str]]) -> bytes:
+        from pydub import AudioSegment
+
         combined = AudioSegment.empty()
         for seg in segments:
             voice = self._get_voice(seg['voice_id'])
@@ -212,6 +227,8 @@ class MLXTTSProvider(TTSProvider):
         return self._max_chars
 
     def generate(self, segments: List[Dict[str, str]]) -> bytes:
+        from pydub import AudioSegment
+
         combined = AudioSegment.empty()
         with httpx.Client(timeout=300.0) as client:
             for seg in segments:
@@ -246,6 +263,8 @@ class OpenAITTSProvider(TTSProvider):
         return self._max_chars
 
     def generate(self, segments: List[Dict[str, str]]) -> bytes:
+        from pydub import AudioSegment
+
         combined = AudioSegment.empty()
         for seg in segments:
             response = self.client.audio.speech.create(
@@ -259,6 +278,99 @@ class OpenAITTSProvider(TTSProvider):
         mp3_buffer = io.BytesIO()
         combined.export(mp3_buffer, format="mp3", bitrate="192k")
         return mp3_buffer.getvalue()
+
+
+class PocketTTSProvider(TTSProvider):
+    """Hermes local Pocket TTS command provider."""
+
+    def __init__(self):
+        self.script = Path(os.environ.get(
+            "AUTONOVEL_POCKET_TTS_SCRIPT",
+            "/home/hermes/.hermes/scripts/pocket_tts_provider.py",
+        ))
+        self.python = os.environ.get(
+            "AUTONOVEL_POCKET_TTS_PYTHON",
+            "/home/hermes/.hermes/hermes-agent/venv/bin/python",
+        )
+        self.language = os.environ.get("AUTONOVEL_POCKET_TTS_LANGUAGE", "english")
+        self.device = os.environ.get("AUTONOVEL_POCKET_TTS_DEVICE", "cpu")
+        self.voice = os.environ.get("AUTONOVEL_POCKET_TTS_VOICE", "Samantha")
+        self.hermes_home = os.environ.get("AUTONOVEL_POCKET_TTS_HERMES_HOME", "/home/hermes/.hermes")
+        self._max_chars = int(os.environ.get("AUTONOVEL_POCKET_TTS_MAX_CHARS", "5000"))
+
+        if not self.script.exists():
+            print(f"ERROR: Pocket TTS provider script not found: {self.script}", file=sys.stderr)
+            sys.exit(1)
+
+    @property
+    def max_chars(self) -> int:
+        return self._max_chars
+
+    @property
+    def output_format(self) -> str:
+        return "wav"
+
+    def _generate_wav_file(self, text: str, output_path: Path):
+        with tempfile.NamedTemporaryFile("w", encoding="utf-8", suffix=".txt", delete=False) as f:
+            input_path = Path(f.name)
+            f.write(text)
+
+        cmd = [
+            self.python,
+            str(self.script),
+            str(input_path),
+            str(output_path),
+            self.language,
+            self.device,
+            self.voice,
+        ]
+        try:
+            env = os.environ.copy()
+            env["HERMES_HOME"] = self.hermes_home
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=env)
+        finally:
+            try:
+                input_path.unlink()
+            except FileNotFoundError:
+                pass
+        if result.returncode != 0:
+            raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "pocket-tts failed")
+
+    def generate(self, segments: List[Dict[str, str]]) -> bytes:
+        wav_paths = []
+        with tempfile.TemporaryDirectory(prefix="autonovel_pocket_tts_") as tmp:
+            tmp_dir = Path(tmp)
+            for idx, seg in enumerate(segments, 1):
+                clean_text = re.sub(r"\[.*?\]", "", seg["text"]).strip()
+                if not clean_text:
+                    continue
+                wav_path = tmp_dir / f"segment_{idx:04d}.wav"
+                self._generate_wav_file(clean_text, wav_path)
+                wav_paths.append(wav_path)
+
+            if not wav_paths:
+                return b""
+
+            out_buffer = io.BytesIO()
+            writer = None
+            try:
+                for wav_path in wav_paths:
+                    with wave.open(str(wav_path), "rb") as reader:
+                        params = reader.getparams()
+                        frames = reader.readframes(reader.getnframes())
+                        if writer is None:
+                            writer = wave.open(out_buffer, "wb")
+                            writer.setparams(params)
+                        elif reader.getparams()[:3] != writer.getparams()[:3]:
+                            raise RuntimeError("Pocket TTS returned inconsistent WAV parameters")
+                        writer.writeframes(frames)
+                if writer is not None:
+                    writer.close()
+                    writer = None
+                return out_buffer.getvalue()
+            finally:
+                if writer is not None:
+                    writer.close()
 
 
 def get_client(name: str) -> TTSProvider:
@@ -285,6 +397,8 @@ def get_client(name: str) -> TTSProvider:
             print("ERROR: OPENAI_API_KEY not set in .env", file=sys.stderr)
             sys.exit(1)
         return OpenAITTSProvider(key)
+    elif name in {"pocket-tts", "pocket"}:
+        return PocketTTSProvider()
     else:
         print(f"ERROR: Unknown provider {name}")
         sys.exit(1)
@@ -292,6 +406,10 @@ def get_client(name: str) -> TTSProvider:
 
 def load_voices(provider_name: str):
     """Load voice mapping from audiobook_voices.json."""
+    if provider_name in {"pocket-tts", "pocket"}:
+        voice = os.environ.get("AUTONOVEL_POCKET_TTS_VOICE", "Samantha")
+        return {"NARRATOR": voice, "MINOR": voice}
+
     if not VOICES_FILE.exists():
         print(f"ERROR: {VOICES_FILE} not found. Create it first.", file=sys.stderr)
         sys.exit(1)
@@ -461,7 +579,7 @@ def generate_chapter(ch_num, client, voices, test_mode=False):
     combined = b"".join(audio_parts)
 
     suffix = "_test" if test_mode else ""
-    out_path = OUTPUT_DIR / f"ch_{ch_num:02d}{suffix}.mp3"
+    out_path = OUTPUT_DIR / f"ch_{ch_num:02d}{suffix}.{client.output_format}"
     out_path.write_bytes(combined)
 
     size_mb = len(combined) / (1024 * 1024)
@@ -498,6 +616,8 @@ def list_voices(client):
 def assemble_full_audiobook():
     """Concatenate all chapter audio files into one."""
     chapter_files = sorted(OUTPUT_DIR.glob("ch_*.mp3"))
+    if not chapter_files:
+        chapter_files = sorted(OUTPUT_DIR.glob("ch_*.wav"))
     chapter_files = [f for f in chapter_files if "_test" not in f.name]
 
     if not chapter_files:
@@ -506,14 +626,27 @@ def assemble_full_audiobook():
 
     print(f"\nAssembling {len(chapter_files)} chapters into full audiobook...")
 
-    combined = b""
-    # Add 2 seconds of silence between chapters (simple approach: just concatenate)
-    for f in chapter_files:
-        combined += f.read_bytes()
-
-    out = AUDIO_DIR / "full_audiobook.mp3"
-    out.write_bytes(combined)
-    size_mb = len(combined) / (1024 * 1024)
+    if chapter_files[0].suffix == ".wav":
+        out = AUDIO_DIR / "full_audiobook.wav"
+        with wave.open(str(out), "wb") as writer:
+            initialized = False
+            for f in chapter_files:
+                with wave.open(str(f), "rb") as reader:
+                    if not initialized:
+                        writer.setparams(reader.getparams())
+                        initialized = True
+                    elif reader.getparams()[:3] != writer.getparams()[:3]:
+                        raise RuntimeError("Chapter WAV files have inconsistent parameters")
+                    writer.writeframes(reader.readframes(reader.getnframes()))
+        size_mb = out.stat().st_size / (1024 * 1024)
+    else:
+        combined = b""
+        # Add 2 seconds of silence between chapters (simple approach: just concatenate)
+        for f in chapter_files:
+            combined += f.read_bytes()
+        out = AUDIO_DIR / "full_audiobook.mp3"
+        out.write_bytes(combined)
+        size_mb = len(combined) / (1024 * 1024)
     print(f"  Full audiobook: {out} ({size_mb:.1f} MB)")
 
 
@@ -521,7 +654,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate audiobook from parsed scripts")
     parser.add_argument("start", nargs="?", type=int, help="Start chapter")
     parser.add_argument("end", nargs="?", type=int, help="End chapter")
-    parser.add_argument("--provider", default="elevenlabs", choices=["elevenlabs", "kokoro", "piper", "mlx", "kittentts", "openai"], help="TTS provider")
+    parser.add_argument("--provider", default="pocket-tts", choices=["pocket-tts", "elevenlabs", "kokoro", "piper", "mlx", "kittentts", "openai"], help="TTS provider")
     parser.add_argument("--list-voices", action="store_true", help="List available voices")
     parser.add_argument("--test", type=int, metavar="CH", help="Test mode: first few segments of chapter")
     parser.add_argument("--assemble", action="store_true", help="Assemble full audiobook from chapters")
