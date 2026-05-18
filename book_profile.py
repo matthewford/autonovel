@@ -102,6 +102,23 @@ def _load_yaml(path: Path) -> dict[str, Any]:
         return _minimal_yaml_load(text)
 
 
+def _env(name: str) -> str | None:
+    value = os.environ.get(name)
+    if value is None or value.strip() == "":
+        return None
+    return value
+
+
+def _first(*values: Any) -> str:
+    for value in values:
+        if value is None:
+            continue
+        text = str(value)
+        if text.strip() != "":
+            return text
+    return ""
+
+
 def _deep_get(data: dict[str, Any], path: str, default: Any = None) -> Any:
     current: Any = data
     for part in path.split("."):
@@ -145,10 +162,7 @@ class BookProfile:
         return _deep_get(self.data, path, default)
 
     def role_config(self, role: str) -> RoleConfig:
-        backend = os.environ.get(
-            "AUTONOVEL_LLM_BACKEND",
-            str(self.get("generation.backend", "anthropic")),
-        )
+        backend = _first(_env("AUTONOVEL_LLM_BACKEND"), self.get("generation.backend", "anthropic"))
         role_key = role if role in {"writer", "judge", "reviewer", "reader"} else "writer"
         default_model_env = {
             "writer": "AUTONOVEL_WRITER_MODEL",
@@ -163,34 +177,40 @@ class BookProfile:
             "reader": "claude-opus-4-6",
         }[role_key]
         prefix = f"AUTONOVEL_HERMES_{role_key.upper()}_"
-        use_goals = os.environ.get(
-            f"{prefix}USE_GOALS",
-            os.environ.get(
-                "AUTONOVEL_HERMES_USE_GOALS",
-                str(self.get(f"generation.{role_key}.use_goals", self.get("generation.use_goals", False))),
-            ),
+        hermes_model = _first(
+            _env(f"{prefix}MODEL"),
+            _env("AUTONOVEL_HERMES_MODEL"),
+            self.get(f"generation.{role_key}.model"),
+            default_model,
+        )
+        anthropic_model = _first(
+            _env(default_model_env),
+            self.get(f"generation.{role_key}.anthropic_model"),
+            default_model,
+        )
+        use_goals = _first(
+            _env(f"{prefix}USE_GOALS"),
+            _env("AUTONOVEL_HERMES_USE_GOALS"),
+            self.get(f"generation.{role_key}.use_goals", self.get("generation.use_goals", False)),
         )
         return RoleConfig(
             backend=backend,
             role=role_key,
-            model=os.environ.get(
-                f"{prefix}MODEL",
-                os.environ.get(
-                    "AUTONOVEL_HERMES_MODEL",
-                    os.environ.get(default_model_env, str(self.get(f"generation.{role_key}.model", default_model))),
-                ),
+            model=hermes_model if backend.lower().strip() == "hermes" else anthropic_model,
+            provider=_first(
+                _env(f"{prefix}PROVIDER"),
+                _env("AUTONOVEL_HERMES_PROVIDER"),
+                self.get(f"generation.{role_key}.provider"),
             ),
-            provider=os.environ.get(
-                f"{prefix}PROVIDER",
-                os.environ.get("AUTONOVEL_HERMES_PROVIDER", str(self.get(f"generation.{role_key}.provider", ""))),
+            profile=_first(
+                _env(f"{prefix}PROFILE"),
+                _env("AUTONOVEL_HERMES_PROFILE"),
+                self.get(f"generation.{role_key}.profile"),
             ),
-            profile=os.environ.get(
-                f"{prefix}PROFILE",
-                os.environ.get("AUTONOVEL_HERMES_PROFILE", str(self.get(f"generation.{role_key}.profile", ""))),
-            ),
-            toolsets=os.environ.get(
-                f"{prefix}TOOLSETS",
-                os.environ.get("AUTONOVEL_HERMES_TOOLSETS", str(self.get(f"generation.{role_key}.toolsets", "file,safe"))),
+            toolsets=_first(
+                _env(f"{prefix}TOOLSETS"),
+                _env("AUTONOVEL_HERMES_TOOLSETS"),
+                self.get(f"generation.{role_key}.toolsets", "file,safe"),
             ),
             use_goals=str(use_goals).lower() in {"1", "true", "yes", "on"},
             temperature=float(self.get(f"generation.{role_key}.temperature", 0.7)),
