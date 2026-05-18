@@ -1,11 +1,11 @@
 {
-  "phase": "foundation",
+  "phase": "drafting",
   "current_focus": "complete",
   "iteration": 1,
   "foundation_score": 8.2,
   "lore_score": 8.0,
-  "chapters_drafted": 0,
+  "chapters_drafted": 8,
   "chapters_total": 8,
-  "novel_score": 0.0,
+  "novel_score": 6.8,
   "debts": []
 }
