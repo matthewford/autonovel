@@ -25,11 +25,14 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
+
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 BASE_DIR = Path(__file__).parent
+load_dotenv(BASE_DIR / ".env", override=True)
 STATE_FILE = BASE_DIR / "state.json"
 RESULTS_FILE = BASE_DIR / "results.tsv"
 CHAPTERS_DIR = BASE_DIR / "chapters"
@@ -151,9 +154,28 @@ def run_tool(cmd: str | list[str], timeout: int = 600, check: bool = False) -> s
         return fake
 
 
+def run_required(cmd: str | list[str], timeout: int = 600) -> subprocess.CompletedProcess:
+    """Run a required command and raise with useful context if it fails."""
+    result = run_tool(cmd, timeout=timeout)
+    if result.returncode != 0:
+        display = cmd if isinstance(cmd, str) else " ".join(shlex.quote(part) for part in cmd)
+        raise RuntimeError(
+            f"Required command failed: {display}\n"
+            f"exit={result.returncode}\n"
+            f"stdout={(result.stdout or '')[-2000:]}\n"
+            f"stderr={(result.stderr or '')[-2000:]}"
+        )
+    return result
+
+
 def uv_run(script: str, timeout: int = 600) -> subprocess.CompletedProcess:
     """Shorthand for 'uv run python <script>' from project root."""
     return run_tool(["uv", "run", "python", *shlex.split(script)], timeout=timeout)
+
+
+def uv_required(script: str, timeout: int = 600) -> subprocess.CompletedProcess:
+    """Run a required Python project script via uv."""
+    return run_required(["uv", "run", "python", *shlex.split(script)], timeout=timeout)
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +206,60 @@ def git_short_hash() -> str:
     """Get current HEAD short hash."""
     r = run_tool("git rev-parse --short HEAD")
     return r.stdout.strip() if r.returncode == 0 else "unknown"
+
+
+def git_current_branch() -> str:
+    r = subprocess.run(
+        ["git", "branch", "--show-current"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        cwd=str(BASE_DIR),
+    )
+    if r.returncode != 0:
+        raise RuntimeError(f"Unable to determine current git branch: {r.stderr.strip()}")
+    return r.stdout.strip()
+
+
+def git_status_short() -> str:
+    r = subprocess.run(
+        ["git", "status", "--short"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        cwd=str(BASE_DIR),
+    )
+    if r.returncode != 0:
+        raise RuntimeError(f"Unable to read git status: {r.stderr.strip()}")
+    return r.stdout.strip()
+
+
+def preflight(args):
+    """Validate repository safety constraints before any pipeline writes."""
+    branch = git_current_branch()
+    if not args.allow_master and branch in {"master", "main"}:
+        print(
+            f"Refusing to run AutoNovel on {branch}. Create or switch to a book branch, "
+            "for example: git checkout -b autonovel/<book-slug>. "
+            "Use --allow-master only for framework maintenance.",
+            file=sys.stderr,
+        )
+        raise SystemExit(1)
+    if not args.allow_dirty:
+        dirty = git_status_short()
+        if dirty:
+            print(
+                "Refusing to run with uncommitted changes. Commit, stash, or rerun with "
+                "--allow-dirty if these changes are intentional.\n\n"
+                f"{dirty}",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
+
+
+def optional_env_configured(name: str) -> bool:
+    value = os.environ.get(name, "").strip()
+    return bool(value) and not value.startswith("your-") and value != "sk-ant-..."
 
 
 # ---------------------------------------------------------------------------
@@ -261,26 +337,29 @@ def run_foundation(state: dict) -> dict:
 
         # 1. Generate planning documents
         step("Generating world bible...")
-        uv_run("gen_world.py", timeout=300)
+        uv_required("gen_world.py", timeout=900)
 
         step("Generating characters...")
-        uv_run("gen_characters.py", timeout=300)
+        uv_required("gen_characters.py", timeout=900)
 
         step("Generating outline (part 1)...")
-        uv_run("gen_outline.py", timeout=300)
+        uv_required("gen_outline.py", timeout=900)
 
         step("Generating outline (part 2 — foreshadowing)...")
-        uv_run("gen_outline_part2.py", timeout=300)
+        uv_required("gen_outline_part2.py", timeout=900)
 
         step("Generating canon...")
-        uv_run("gen_canon.py", timeout=300)
+        uv_required("gen_canon.py", timeout=900)
 
-        step("Running voice fingerprint...")
-        uv_run("voice_fingerprint.py", timeout=300)
+        if count_chapter_files() > 0:
+            step("Running voice fingerprint...")
+            uv_required("voice_fingerprint.py", timeout=300)
+        else:
+            step("Skipping voice fingerprint until chapters exist")
 
         # 2. Evaluate
         step("Evaluating foundation...")
-        eval_result = uv_run("evaluate.py --phase=foundation", timeout=300)
+        eval_result = uv_required("evaluate.py --phase=foundation", timeout=900)
         score = parse_score(eval_result.stdout, "overall_score")
         lore = parse_lore_score(eval_result.stdout)
 
@@ -344,7 +423,7 @@ def run_drafting(state: dict) -> dict:
             step(f"Attempt {attempt}/{MAX_CHAPTER_ATTEMPTS}")
 
             # Draft
-            draft_result = uv_run(f"draft_chapter.py {ch}", timeout=600)
+            draft_result = uv_run(f"draft_chapter.py {ch}", timeout=1200)
             if draft_result.returncode != 0:
                 step(f"Draft failed (exit {draft_result.returncode}), retrying...")
                 continue
@@ -359,7 +438,7 @@ def run_drafting(state: dict) -> dict:
             step(f"Drafted {word_count} words")
 
             # Evaluate
-            eval_result = uv_run(f"evaluate.py --chapter={ch}", timeout=300)
+            eval_result = uv_required(f"evaluate.py --chapter={ch}", timeout=900)
             score = parse_score(eval_result.stdout, "overall_score")
             step(f"Chapter {ch} score: {score}")
 
@@ -492,20 +571,20 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
 
         # -- Step 1: Adversarial editing pass --
         step("Running adversarial editing on all chapters...")
-        uv_run("adversarial_edit.py all", timeout=900)
+        uv_required("adversarial_edit.py all", timeout=1200)
 
         # -- Step 2: Apply mechanical cuts (only if apply_cuts.py exists) --
         apply_cuts = BASE_DIR / "apply_cuts.py"
         if apply_cuts.exists():
             step("Applying mechanical cuts (OVER-EXPLAIN, REDUNDANT)...")
-            run_tool("uv run python apply_cuts.py all "
-                     "--types OVER-EXPLAIN REDUNDANT --min-fat 15", timeout=300)
+            run_required("uv run python apply_cuts.py all "
+                         "--types OVER-EXPLAIN REDUNDANT --min-fat 15", timeout=600)
         else:
             step("apply_cuts.py not found, skipping mechanical cuts")
 
         # -- Step 3: Reader panel --
         step("Running reader panel evaluation...")
-        uv_run("reader_panel.py", timeout=600)
+        uv_required("reader_panel.py", timeout=1200)
 
         # -- Step 4: Parse panel consensus --
         panel_path = EDIT_LOGS_DIR / "reader_panel.json"
@@ -526,7 +605,7 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
             banner(f"  Revising Ch {ch_num} ({question}) [{idx+1}/{len(consensus_items)}]", ".")
 
             # Snapshot the current chapter score for comparison
-            pre_eval = uv_run(f"evaluate.py --chapter={ch_num}", timeout=300)
+            pre_eval = uv_required(f"evaluate.py --chapter={ch_num}", timeout=900)
             pre_score = parse_score(pre_eval.stdout, "overall_score")
 
             # Generate revision brief
@@ -534,7 +613,7 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
             gen_brief = BASE_DIR / "gen_brief.py"
             if gen_brief.exists():
                 step(f"Generating brief for Ch {ch_num}...")
-                run_tool(f"uv run python gen_brief.py --panel {ch_num}", timeout=300)
+                run_required(f"uv run python gen_brief.py --panel {ch_num}", timeout=600)
                 # gen_brief.py may write to briefs/ — find the most recent brief
                 brief_candidates = sorted(
                     BRIEFS_DIR.glob(f"ch{ch_num:02d}*.md"),
@@ -559,10 +638,10 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
 
             # Run revision
             step(f"Revising Ch {ch_num} with brief {brief_file.name}...")
-            uv_run(f"gen_revision.py {ch_num} {brief_file}", timeout=600)
+            uv_required(f"gen_revision.py {ch_num} {brief_file}", timeout=1200)
 
             # Evaluate revised chapter
-            post_eval = uv_run(f"evaluate.py --chapter={ch_num}", timeout=300)
+            post_eval = uv_required(f"evaluate.py --chapter={ch_num}", timeout=900)
             post_score = parse_score(post_eval.stdout, "overall_score")
 
             ch_file = CHAPTERS_DIR / f"ch_{ch_num:02d}.md"
@@ -586,7 +665,7 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
 
         # -- Step 6: Full novel evaluation --
         step("Running full novel evaluation...")
-        full_eval = uv_run("evaluate.py --full", timeout=600)
+        full_eval = uv_required("evaluate.py --full", timeout=1200)
         novel_score = parse_score(full_eval.stdout, "novel_score")
 
         if novel_score < 0:
@@ -628,12 +707,12 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
             
             # Step 1: Generate the review
             step("Sending manuscript to Opus for review...")
-            review_result = uv_run(
-                f"review.py --output reviews.md", timeout=900)
+            review_result = uv_required(
+                f"review.py --output reviews.md", timeout=1800)
             
             # Step 2: Parse the review
             step("Parsing review...")
-            parse_result = run_tool(
+            parse_result = run_required(
                 "uv run python review.py --parse", timeout=60)
             print(parse_result.stdout if parse_result else "")
             
@@ -664,7 +743,7 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
             gen_brief_py = BASE_DIR / "gen_brief.py"
             if gen_brief_py.exists():
                 # Auto mode: picks weakest chapter, cross-references all sources
-                run_tool("uv run python gen_brief.py --auto", timeout=300)
+                run_required("uv run python gen_brief.py --auto", timeout=600)
                 
                 # Find any generated briefs and apply the top one
                 recent_briefs = sorted(
@@ -677,7 +756,7 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
                     if ch_match:
                         ch_num = int(ch_match.group(1))
                         step(f"Revising Ch {ch_num} from review brief...")
-                        uv_run(f"gen_revision.py {ch_num} {brief}", timeout=600)
+                        uv_required(f"gen_revision.py {ch_num} {brief}", timeout=1200)
                         git_add_commit(
                             f"review round {rnd}: revise ch{ch_num:02d} from Opus feedback")
             
@@ -686,9 +765,9 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
             step("Running mechanical cleanup pass...")
             apply_cuts_py = BASE_DIR / "apply_cuts.py"
             if apply_cuts_py.exists():
-                run_tool(
+                run_required(
                     "uv run python apply_cuts.py all --types OVER-EXPLAIN REDUNDANT --min-fat 15",
-                    timeout=300)
+                    timeout=600)
                 git_add_commit(f"review round {rnd}: mechanical cleanup")
             
             step(f"Review round {rnd} complete.")
@@ -710,7 +789,8 @@ def run_revision(state: dict, max_cycles: int = MAX_REVISION_CYCLES) -> dict:
 
 def run_export(state: dict) -> dict:
     """
-    Build final deliverables: outline, arc summary, manuscript, PDF.
+    Build final deliverables: outline, arc summary, manuscript, PDF,
+    and optional art/audiobook assets when their providers are configured.
     """
     banner("PHASE 4: EXPORT", "=")
 
@@ -718,13 +798,13 @@ def run_export(state: dict) -> dict:
     build_outline = BASE_DIR / "build_outline.py"
     if build_outline.exists():
         step("Rebuilding outline from chapters...")
-        uv_run("build_outline.py", timeout=300)
+        uv_required("build_outline.py", timeout=900)
 
     # 2. Build arc summary
     build_arc = BASE_DIR / "build_arc_summary.py"
     if build_arc.exists():
         step("Building arc summary...")
-        uv_run("build_arc_summary.py", timeout=300)
+        uv_required("build_arc_summary.py", timeout=900)
 
     # 3. Concatenate chapters into manuscript.md
     step("Building manuscript.md...")
@@ -786,6 +866,7 @@ def run_export(state: dict) -> dict:
 
 def run_pipeline(args):
     """Run the full pipeline or a specific phase."""
+    preflight(args)
 
     # Load or initialize state
     if args.from_scratch:
@@ -892,6 +973,12 @@ Examples:
     parser.add_argument(
         "--max-cycles", type=int, default=None,
         help=f"Maximum revision cycles (default: {MAX_REVISION_CYCLES})")
+    parser.add_argument(
+        "--allow-master", action="store_true",
+        help="Allow running on master/main. Intended only for framework maintenance.")
+    parser.add_argument(
+        "--allow-dirty", action="store_true",
+        help="Allow running with uncommitted changes. Use only when changes are intentional.")
 
     args = parser.parse_args()
     run_pipeline(args)
