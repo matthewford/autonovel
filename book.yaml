@@ -1,19 +1,19 @@
-slug: template
-title: Untitled AutoNovel
-genre: literary fantasy
-market_positioning: "Specific, emotionally precise fantasy with concrete costs and lived-in worldbuilding"
-target_length_words: 85000
-chapter_target_words: 3200
-chapters_target: 24
+slug: falling-for-her
+title: "Falling for Her"
+genre: contemporary literary romance
+market_positioning: "Intimate, unsentimental tech romance exploring loneliness, simulation vs feeling, and the ethics of emotional dependency on AI"
+target_length_words: 28000
+chapter_target_words: 2800
+chapters_target: 8
 
 pov:
   person: third
   tense: past
   mode: limited
-  default_character: ""
+  default_character: "Elias"
 
 voice:
-  style_summary: ""
+  style_summary: "Precise, sensory, quietly devastating prose that privileges embodied detail over abstraction. Avoid therapy-speak, prophecy haze, and over-signposted emotion. Let subtext and physical sensation carry the weight."
   banned_patterns_file: voice.md
   craft_files:
     - CRAFT.md
@@ -28,8 +28,8 @@ generation:
     provider: zai
     model: glm-5.1
     toolsets: file,safe
-    temperature: 0.8
-    timeout_seconds: 900
+    temperature: 0.75
+    timeout_seconds: 1200
   judge:
     profile: autonovel
     provider: zai
@@ -56,3 +56,5 @@ constraints:
   no_web_ui_scraping: true
   branch_per_book: true
   require_clean_git_before_run: true
+  small_test_book: true
+  max_chapters: 8
